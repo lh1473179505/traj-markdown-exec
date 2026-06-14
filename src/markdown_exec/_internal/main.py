@@ -73,7 +73,11 @@ def validator(
     session_value = inputs.pop("session", "")
     update_toc_value = _to_bool(inputs.pop("updatetoc", "yes"))
     tabs_value = inputs.pop("tabs", "|".join(default_tabs))
-    tabs = tuple(_tabs_re.split(tabs_value, maxsplit=1))
+    _tabs_parts = _tabs_re.split(tabs_value, maxsplit=1)
+    if len(_tabs_parts) == 1:
+        tabs = (_tabs_parts[0], default_tabs[1])
+    else:
+        tabs = tuple(_tabs_parts)
     workdir_value = inputs.pop("workdir", None)
     width_value = int(inputs.pop("width", "0"))
     options["id"] = id_value
