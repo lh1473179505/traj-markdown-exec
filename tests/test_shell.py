@@ -85,3 +85,38 @@ def test_return_code(md: Markdown, caplog: pytest.LogCaptureFixture) -> None:
     )
     assert "Not in the mood" in html
     assert "exited with" not in caplog.text
+
+
+def test_console_transform_source_prompt_preserved() -> None:
+    """Assert the display string uses the last matched prompt, not trailing non-prompt lines.
+
+    When the source contains prompt lines followed by output lines (no $ or %
+    prefix), the display text must still be indented with the last successfully
+    matched prompt (defaulting to ``$ ``), not with the first two characters of
+    the final line.
+    """
+    from markdown_exec._internal.formatters.console import _transform_source
+
+    # Dollar prompt with a trailing output line whose first two chars are "do".
+    code = "$ echo ok\ndone"
+    sh_code, display = _transform_source(code)
+    assert sh_code == "echo ok"
+    assert display == "$ echo ok"
+
+    # Percent prompt with a trailing output line.
+    code = "% echo hi\nthere"
+    sh_code, display = _transform_source(code)
+    assert sh_code == "echo hi"
+    assert display == "% echo hi"
+
+    # Multiple prompt lines: last matched prompt wins.
+    code = "$ first\n% second\noutput"
+    sh_code, display = _transform_source(code)
+    assert sh_code == "first\nsecond"
+    assert display == "% first\n% second"
+
+    # No prompt lines at all: default "$ " is used.
+    code = "plain line"
+    sh_code, display = _transform_source(code)
+    assert sh_code == ""
+    assert display == ""

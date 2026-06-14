@@ -17,9 +17,11 @@ _logger = get_logger(__name__)
 
 def _transform_source(code: str) -> tuple[str, str]:
     sh_lines = []
+    prompt = "$ "
     for line in code.split("\n"):
-        prompt = line[:2]
-        if prompt in {"$ ", "% "}:
+        prefix = line[:2]
+        if prefix in {"$ ", "% "}:
+            prompt = prefix
             sh_lines.append(line[2:])
     sh_code = "\n".join(sh_lines)
     return sh_code, textwrap.indent(sh_code, prompt)
