@@ -69,13 +69,23 @@ def validator(
     html_value = _to_bool(inputs.pop("html", "no"))
     source_value = inputs.pop("source", "")
     result_value = inputs.pop("result", "")
-    returncode_value = int(inputs.pop("returncode", "0"))
+    returncode_raw = inputs.pop("returncode", "0")
+    try:
+        returncode_value = int(returncode_raw)
+    except ValueError:
+        _logger.warning("invalid returncode value: %r, falling back to 0", returncode_raw)
+        returncode_value = 0
     session_value = inputs.pop("session", "")
     update_toc_value = _to_bool(inputs.pop("updatetoc", "yes"))
     tabs_value = inputs.pop("tabs", "|".join(default_tabs))
     tabs = tuple(_tabs_re.split(tabs_value, maxsplit=1))
     workdir_value = inputs.pop("workdir", None)
-    width_value = int(inputs.pop("width", "0"))
+    width_raw = inputs.pop("width", "0")
+    try:
+        width_value = int(width_raw)
+    except ValueError:
+        _logger.warning("invalid width value: %r, falling back to 0", width_raw)
+        width_value = 0
     options["id"] = id_value
     options["id_prefix"] = id_prefix_value
     options["html"] = html_value
