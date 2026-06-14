@@ -66,6 +66,27 @@ def test_error_raised(md: Markdown, caplog: pytest.LogCaptureFixture) -> None:
     assert "Execution of sh code block exited with unexpected code 2" in caplog.text
 
 
+def test_console_transform_source_prompt_preserved() -> None:
+    """Assert the display string uses the last matched prompt, not the last line's prefix."""
+    from markdown_exec._internal.formatters.console import _transform_source
+
+    # Dollar prompt followed by a non-prompt output line.
+    code_dollar = "$ echo ok\ndone"
+    _, display_dollar = _transform_source(code_dollar)
+    assert display_dollar == "$ echo ok"
+
+    # Percent prompt followed by a non-prompt output line.
+    code_percent = "% echo ok\ndone"
+    _, display_percent = _transform_source(code_percent)
+    assert display_percent == "% echo ok"
+
+    # Multiple prompt lines followed by a non-prompt line.
+    code_multi = "$ echo hello\n$ echo world\nsome output"
+    _, display_multi = _transform_source(code_multi)
+    for line in display_multi.split("\n"):
+        assert line.startswith("$ ")
+
+
 def test_return_code(md: Markdown, caplog: pytest.LogCaptureFixture) -> None:
     """Assert return code is used correctly.
 

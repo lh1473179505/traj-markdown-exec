@@ -17,12 +17,14 @@ _logger = get_logger(__name__)
 
 def _transform_source(code: str) -> tuple[str, str]:
     sh_lines = []
+    matched_prompt = "$ "
     for line in code.split("\n"):
         prompt = line[:2]
         if prompt in {"$ ", "% "}:
+            matched_prompt = prompt
             sh_lines.append(line[2:])
     sh_code = "\n".join(sh_lines)
-    return sh_code, textwrap.indent(sh_code, prompt)
+    return sh_code, textwrap.indent(sh_code, matched_prompt)
 
 
 def _format_console(**kwargs: Any) -> Markup:
