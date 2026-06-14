@@ -74,3 +74,40 @@ def test_prefixing_headings(md: Markdown, id: str, id_prefix: str | None, expect
         ),
     )
     assert re.search(expected, html)
+
+
+def test_id_prepending_compound_href(md: Markdown) -> None:
+    """Assert that compound hrefs (path#fragment) have only their fragment prefixed.
+
+    Parameters:
+        md: A Markdown instance (fixture).
+    """
+    from xml.etree.ElementTree import Element
+
+    from markdown_exec._internal.processors import IdPrependingTreeprocessor
+
+    prefix = "my-prefix-"
+    processor = IdPrependingTreeprocessor(md, prefix)
+
+    root = Element("div")
+
+    # Compound href: path + fragment
+    compound_link = Element("a", {"href": "other.md#target"})
+    root.append(compound_link)
+
+    # Pure fragment href (regression check)
+    pure_link = Element("a", {"href": "#section"})
+    root.append(pure_link)
+
+    # Href without fragment (should be untouched)
+    no_frag_link = Element("a", {"href": "https://example.com"})
+    root.append(no_frag_link)
+
+    processor.run(root)
+
+    # Compound href: path preserved, fragment prefixed
+    assert compound_link.get("href") == "other.md#my-prefix-target"
+    # Pure fragment href: existing behavior preserved
+    assert pure_link.get("href") == "#my-prefix-section"
+    # No fragment: untouched
+    assert no_frag_link.get("href") == "https://example.com"
