@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import re
+import sys
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
+import pytest
+
+from markdown_exec._internal.formatters.base import ExecutionError
+from markdown_exec._internal.formatters.python import _run_python
+
 if TYPE_CHECKING:
-    import pytest
     from markdown import Markdown
 
 
@@ -229,3 +234,25 @@ def test_future_annotations_do_not_leak_into_user_code(md: Markdown) -> None:
     )
     assert "<code>Int</code>" not in html
     assert re.search(r"class '_code_block_n\d+_\.Int'", html)
+
+
+def test_run_python_removes_sys_modules_entry() -> None:
+    """Assert synthetic module entries are removed from sys.modules after execution."""
+    # Success path
+    before = set(sys.modules)
+    _run_python("x = 1\n")
+    after = set(sys.modules)
+    new_modules = after - before
+    assert not any(m.startswith("_code_block_") for m in new_modules), (
+        f"Leaked module(s) after successful execution: {[m for m in new_modules if m.startswith('_code_block_')]}"
+    )
+
+    # Error path
+    before = set(sys.modules)
+    with pytest.raises(ExecutionError):
+        _run_python("raise ValueError('boom')\n")
+    after = set(sys.modules)
+    new_modules = after - before
+    assert not any(m.startswith("_code_block_") for m in new_modules), (
+        f"Leaked module(s) after failed execution: {[m for m in new_modules if m.startswith('_code_block_')]}"
+    )

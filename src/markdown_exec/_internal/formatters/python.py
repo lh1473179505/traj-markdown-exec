@@ -78,6 +78,8 @@ def _run_python(
                 else:
                     frame._line = _code_blocks[frame.filename][frame.lineno - 1]  # type: ignore[attr-defined,operator]
         raise ExecutionError(code_block("python", "".join(trace.format()), **extra)) from error
+    finally:
+        sys.modules.pop(module_name, None)
     return buffer.getvalue()
 
 
