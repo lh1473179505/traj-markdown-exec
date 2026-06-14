@@ -229,3 +229,23 @@ def test_future_annotations_do_not_leak_into_user_code(md: Markdown) -> None:
     )
     assert "<code>Int</code>" not in html
     assert re.search(r"class '_code_block_n\d+_\.Int'", html)
+
+
+def test_pycon_transform_variable_prompt_width() -> None:
+    """Assert pycon prefixes with extra > or missing space are handled correctly."""
+    from markdown_exec._internal.formatters.pycon import _transform_source
+
+    # Extra > character: >>>> print(1) should yield print(1)
+    python_code, _ = _transform_source(">>>> print(1)")
+    assert python_code == "print(1)"
+
+    # No space after >>>: >>>print(2) should yield print(2)
+    python_code, _ = _transform_source(">>>print(2)")
+    assert python_code == "print(2)"
+
+    # Standard forms still work
+    python_code, _ = _transform_source(">>> foo")
+    assert python_code == "foo"
+
+    python_code, _ = _transform_source("... bar")
+    assert python_code == "bar"
