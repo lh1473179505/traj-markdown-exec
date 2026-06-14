@@ -5,11 +5,13 @@ from __future__ import annotations
 import re
 from textwrap import dedent
 from typing import TYPE_CHECKING
+from xml.etree.ElementTree import Element
 
 import pytest
 from markdown.extensions.toc import TocExtension
 
 from markdown_exec import MarkdownConfig, markdown_config
+from markdown_exec._internal.processors import IdPrependingTreeprocessor
 
 if TYPE_CHECKING:
     from markdown import Markdown
@@ -74,3 +76,32 @@ def test_prefixing_headings(md: Markdown, id: str, id_prefix: str | None, expect
         ),
     )
     assert re.search(expected, html)
+
+
+def test_id_prepending_compound_href(md: Markdown) -> None:
+    """Assert compound hrefs get the prefix only on the fragment part.
+
+    Parameters:
+        md: A Markdown instance (fixture).
+    """
+    root = Element("div")
+    # Compound href: path + fragment
+    a_compound = Element("a", {"href": "other.md#target"})
+    root.append(a_compound)
+    # Pure fragment href
+    a_fragment = Element("a", {"href": "#section"})
+    root.append(a_fragment)
+    # Absolute path with fragment
+    a_abs = Element("a", {"href": "/docs/foo#heading"})
+    root.append(a_abs)
+    # No fragment — should be left untouched
+    a_plain = Element("a", {"href": "other.md"})
+    root.append(a_plain)
+
+    tp = IdPrependingTreeprocessor(md, id_prefix="pfx-")
+    tp.run(root)
+
+    assert a_compound.get("href") == "other.md#pfx-target"
+    assert a_fragment.get("href") == "#pfx-section"
+    assert a_abs.get("href") == "/docs/foo#pfx-heading"
+    assert a_plain.get("href") == "other.md"

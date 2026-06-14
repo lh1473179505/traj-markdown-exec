@@ -38,8 +38,9 @@ class IdPrependingTreeprocessor(Treeprocessor):
                 el.set("id", self.id_prefix + id_attr)
 
             href_attr = el.get("href")
-            if href_attr and href_attr.startswith("#"):
-                el.set("href", "#" + self.id_prefix + href_attr[1:])
+            if href_attr and "#" in href_attr:
+                path, fragment = href_attr.split("#", 1)
+                el.set("href", path + "#" + self.id_prefix + fragment)
 
             name_attr = el.get("name")
             if name_attr:
