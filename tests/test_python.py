@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import re
+import sys
 from textwrap import dedent
 from typing import TYPE_CHECKING
+
+from markdown_exec._internal.formatters.base import ExecutionError
+from markdown_exec._internal.formatters.python import _run_python
 
 if TYPE_CHECKING:
     import pytest
@@ -229,3 +233,24 @@ def test_future_annotations_do_not_leak_into_user_code(md: Markdown) -> None:
     )
     assert "<code>Int</code>" not in html
     assert re.search(r"class '_code_block_n\d+_\.Int'", html)
+
+
+def test_run_python_removes_sys_modules_entry() -> None:
+    """Assert that _run_python removes the synthetic module from sys.modules.
+
+    Both the success path and the ExecutionError path must clean up.
+    """
+    import pytest as _pytest  # local import to keep the test self-contained
+
+    # -- success path --------------------------------------------------------
+    before = set(sys.modules)
+    _run_python("x = 1 + 1")
+    leaked = set(sys.modules) - before
+    assert leaked == set(), f"success path leaked module(s): {leaked}"
+
+    # -- error path ----------------------------------------------------------
+    before = set(sys.modules)
+    with _pytest.raises(ExecutionError):
+        _run_python("raise ValueError('boom')")
+    leaked = set(sys.modules) - before
+    assert leaked == set(), f"error path leaked module(s): {leaked}"
