@@ -229,3 +229,25 @@ def test_future_annotations_do_not_leak_into_user_code(md: Markdown) -> None:
     )
     assert "<code>Int</code>" not in html
     assert re.search(r"class '_code_block_n\d+_\.Int'", html)
+
+
+def test_pycon_transform_variable_prompt_width() -> None:
+    """Assert pycon prefix stripping handles variable-width prompts.
+
+    Both `>>>> print(1)` (extra `>`) and `>>>print(2)` (no space) should
+    have their code correctly forwarded to the Python executor.
+    """
+    from markdown_exec._internal.formatters.pycon import _transform_source
+
+    python_code, _ = _transform_source(">>>> print(1)")
+    assert python_code == "print(1)"
+
+    python_code, _ = _transform_source(">>>print(2)")
+    assert python_code == "print(2)"
+
+    # Standard prompts still work.
+    python_code, _ = _transform_source(">>> print(3)")
+    assert python_code == "print(3)"
+
+    python_code, _ = _transform_source("...     x = 1")
+    assert python_code == "x = 1"
